@@ -13,5 +13,4 @@ appcd.call('/windows/latest/info', ctx => {
 });
 ```
 
-
 You're probably wondering where the windowslib dependency is. It's in appcd-core due to the max path issues explained in [DAEMON-162](https://jira.appcelerator.org/browse/DAEMON-162), which will be fixed in [DAEMON-165](https://jira.appcelerator.org/browse/DAEMON-165)
