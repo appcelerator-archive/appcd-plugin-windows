@@ -1,3 +1,5 @@
+:warning: THIS REPO HAS MOVED TO https://github.com/appcelerator/appc-daemon-plugins
+
 # appcd-plugin-windows
 
 Windows service for the Appc Daemon.
