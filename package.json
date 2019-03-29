@@ -21,7 +21,7 @@
     "windowslib": "^0.6.8"
   },
   "devDependencies": {
-    "appcd-gulp": "^2.0.1",
+    "appcd-gulp": "^2.1.0",
     "gulp": "^4.0.0"
   },
   "homepage": "https://github.com/appcelerator/appc-daemon-plugins/tree/master/packages/appcd-plugin-windows",
