@@ -8,9 +8,8 @@ The `info` service uses [windowslib](https://github.com/appcelerator/windowslib)
 Windows information and returns the information.
 
 ```js
-appcd.call('/windows/latest/info', ctx => {
-	console.log(ctx.response);
-});
+const { response } = await appcd.call('/windows/latest/info');
+console.log(response);
 ```
 
 You're probably wondering where the windowslib dependency is. It's in appcd-core due to the max path issues explained in [DAEMON-162](https://jira.appcelerator.org/browse/DAEMON-162), which will be fixed in [DAEMON-165](https://jira.appcelerator.org/browse/DAEMON-165)
