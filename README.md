@@ -2,17 +2,17 @@
 
 Windows service for the Appc Daemon.
 
+Report issues to [GitHub issues][2]. Official issue tracker in [JIRA][3].
+
 ## Info
 
-The `info` service uses [windowslib](https://github.com/appcelerator/windowslib) to detect the installed
-Windows information and returns the information.
+The `info` service uses [windowslib][4] to detect the installed Windows information and returns
+the information.
 
 ```js
 const { response } = await appcd.call('/windows/latest/info');
 console.log(response);
 ```
-
-You're probably wondering where the windowslib dependency is. It's in appcd-core due to the max path issues explained in [DAEMON-162](https://jira.appcelerator.org/browse/DAEMON-162), which will be fixed in [DAEMON-165](https://jira.appcelerator.org/browse/DAEMON-165)
 
 ## Legal
 
@@ -21,3 +21,6 @@ This project is open source under the [Apache Public License v2][1] and is devel
 in this distribution for more information.
 
 [1]: https://github.com/appcelerator/appcd-plugin-windows/blob/master/LICENSE
+[2]: https://github.com/appcelerator/appcd-plugin-windows/issues
+[3]: https://jira.appcelerator.org/projects/DAEMON/issues
+[4]: https://github.com/appcelerator/windowslib
