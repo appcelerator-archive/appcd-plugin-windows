@@ -1,13 +1,23 @@
+import DetectEngine, { RegistryWatcher } from 'appcd-detect';
 import gawk from 'gawk';
-import windowslib from 'windowslib';
+import version from './version';
 
+import * as windowslib from 'windowslib';
+
+import { arrayify, debounce, get, mergeDeep } from 'appcd-util';
 import { DataServiceDispatcher } from 'appcd-dispatcher';
-import { get } from 'appcd-util';
+import { expandPath } from 'appcd-path';
 
 /**
  * The Windows info service.
  */
 export default class WindowsInfoService extends DataServiceDispatcher {
+
+	/**
+	 * A list of all active Visual Studio registry watchers.
+	 * @type {Array.<RegistryWatcher>}
+	 */
+	vsRegWatchers = [];
 
 	/**
 	 * Initializes the timers for polling Windows information.
@@ -17,213 +27,159 @@ export default class WindowsInfoService extends DataServiceDispatcher {
 	 * @access public
 	 */
 	async activate(cfg) {
+		this.config = cfg;
+		if (cfg.windows) {
+			mergeDeep(windowslib.options, cfg.windows);
+		}
+		gawk.watch(cfg, 'windows', () => mergeDeep(windowslib.options, cfg.windows || {}));
+
 		this.data = gawk({
-			devices: [],
-			emulators: {},
-			windows: {},
+			sdks: {},
 			visualstudio: {},
-			windowsphone: {},
-			selectedVisualStudio: {}
+			vswhere: null
 		});
 
-		this.timers = {};
-
-		// wire up Visual Studio detection first so that we can use its result to know if we should query the other thing
-		await this.wireupDetection('visualstudio', get(cfg, 'windows.visualstudio.pollInterval') || 60000 * 10, () => this.detectVisualStudios());
-
 		await Promise.all([
-			this.wireupDetection('emulators',      get(cfg, 'windows.emulators.pollInterval')    || 60000 * 5,  () => this.detectEmulators()),
-			this.wireupDetection('windows',        get(cfg, 'windows.windowsSDK.pollInterval')   || 60000 / 2,  () => this.detectWindowsSDKs()),
-			this.wireupDetection('windowsphone',   get(cfg, 'windows.windowsPhone.pollInterval') || 60000 / 2,  () => this.detectWindowsPhone())
+			this.initSDKs(),
+			this.initVisualStudios()
 		]);
-
-		// wire up devices after the rest to avoid DAEMON-173 where emulator and
-		// device detect functions attempt to build and write wptool at the same time
-		await this.wireupDetection('devices',      get(cfg, 'windows.device.pollInterval')       || 2500,       () => this.detectDevices());
 	}
 
 	/**
-	 * Stops all active timers.
+	 * Shutsdown the Windows info service.
 	 *
+	 * @returns {Promise}
 	 * @access public
 	 */
-	deactivate() {
-		for (const timer of Object.values(this.timers)) {
-			clearTimeout(timer);
+	async deactivate() {
+		for (const w of this.vsRegWatchers) {
+			w.stop();
 		}
-		this.timers = {};
+
+		if (this.sdkDetectEngine) {
+			await this.sdkDetectEngine.stop();
+			this.sdkDetectEngine = null;
+		}
+
+		await appcd.fs.unwatch('visualstudio');
 	}
 
 	/**
-	 * Executes a detect function, then stores the result and schedules the next check.
+	 * Detect Windows SDKs.
 	 *
-	 * @param {String} type - The bucket name for the detected results.
-	 * @param {Number} interval - The amount of milliseconds until the next check.
-	 * @param {Function} callback - A function to call that performs the detection.
 	 * @returns {Promise}
 	 * @access private
 	 */
-	async wireupDetection(type, interval, callback) {
-		try {
-			const result = await callback();
-			if (result) {
-				console.log(`Updating data for ${type}`);
-				gawk.set(this.data[type], result);
-			}
-		} catch (err) {
-			console.log(err);
-		}
+	async initSDKs() {
+		const paths = [
+			...arrayify(get(this.config, 'windows.sdk.searchPaths'), true),
+			windowslib.sdk.defaultPath
+		];
 
-		this.timers[type] = setTimeout(() => {
-			this.wireupDetection(type, interval, callback);
-		}, interval);
-	}
-
-	/**
-	 * Checks if there are any Visual Studios installed.
-	 *
-	 * @returns {Boolean}
-	 * @access private
-	 */
-	haveVisualStudio() {
-		return Object.keys(this.data.visualstudio).length > 0;
-	}
-
-	/**
-	 * Detect Windows Phone devices.
-	 *
-	 * @returns {Promise<Array.<Object>>}
-	 * @access private
-	 */
-	detectDevices() {
-		return new Promise((resolve, reject) => {
-			if (!this.haveVisualStudio()) {
-				return resolve();
-			}
-
-			console.log('Detecting devices info');
-			windowslib.device.detect({ bypassCache: true }, (err, results) => {
-				if (err) {
-					reject(err);
-				} else {
-					const devices = results.devices;
-					let wpsdkIndex = -1;
-					let realDeviceIndex = -1;
-					for (let i = 0; i < devices.length; i++) {
-						const device = devices[i];
-						if (device.udid === 0 && device.wpsdk) {
-							wpsdkIndex = i;
-						} else if (device.udid !== 0 && !device.wpsdk) {
-							// now find with "real" device
-							realDeviceIndex = i;
-						}
-						if (wpsdkIndex !== -1 && realDeviceIndex !== -1) {
-							break;
-						}
-					}
-					if (wpsdkIndex !== -1 && realDeviceIndex !== -1) {
-						// set 'real' device wpsdk to the value we got from wptool binary
-						devices[realDeviceIndex].wpsdk = devices[wpsdkIndex].wpsdk;
-						// remove the wptool binary entry
-						devices.splice(wpsdkIndex, 1);
-					}
-					resolve(devices);
+		this.sdkDetectEngine = new DetectEngine({
+			checkDir(dir) {
+				try {
+					return windowslib.sdk.detectSDKs(dir);
+				} catch (e) {
+					// 'dir' is not an SDK
 				}
-			});
+			},
+			depth:               1,
+			multiple:            true,
+			name:                'windows:sdk',
+			paths,
+			recursive:           true,
+			recursiveWatchDepth: 3,
+			redetect:            true,
+			registryKeys:        windowslib.sdk.registryKeys.map(key => ({ key })),
+			watch:               true
 		});
-	}
 
-	/**
-	 * Detect Windows Phone emulators.
-	 *
-	 * @returns {Promise<Object>}
-	 * @access private
-	 */
-	detectEmulators() {
-		return new Promise((resolve, reject) => {
-			if (!this.haveVisualStudio()) {
-				return resolve();
+		// listen for sdk results
+		this.sdkDetectEngine.on('results', results => {
+			const sdks = {};
+			for (const sdk of results.sort((a, b) => version.compare(a.version, b.version))) {
+				sdks[sdk.version] = sdk;
 			}
+			gawk.set(this.data.sdks, sdks);
+		});
 
-			console.log('Detecting emulator info');
-			windowslib.emulator.detect({ bypassCache: true }, (err, results) => {
-				if (err) {
-					reject(err);
-				} else {
-					resolve(results.emulators);
-				}
-			});
+		await this.sdkDetectEngine.start();
+
+		gawk.watch(this.config, [ 'windows', 'sdk', 'searchPaths' ], value => {
+			this.sdkDetectEngine.paths = [
+				...arrayify(value, true),
+				windowslib.sdk.defaultPath
+			];
 		});
 	}
 
 	/**
 	 * Detect Visual Studio installations.
 	 *
-	 * @returns {Promise<Object>}
+	 * @returns {Promise}
 	 * @access private
 	 */
-	detectVisualStudios() {
-		return new Promise((resolve, reject) => {
-			console.log('Detecting visualstudio info');
-			windowslib.visualstudio.detect({ bypassCache: true }, (err, results) => {
-				if (err) {
-					return reject(err);
-				}
+	async initVisualStudios() {
+		const detectVS = debounce(async () => {
+			const results = {};
+			const vswhere = await windowslib.vswhere.getVSWhere(true);
 
-				let found = false;
-				if (results.visualstudio) {
-					for (const visualstudio of Object.keys(results.visualstudio)) {
-						if (results.visualstudio[visualstudio].selected) {
-							found = true;
-							gawk.set(this.data.selectedVisualStudio, results.visualstudio[visualstudio]);
-							break;
+			gawk.merge(this.data, { vswhere: vswhere && vswhere.exe || null });
+
+			if (vswhere) {
+				// detect the Visual Studio installations
+				for (const info of await vswhere.query()) {
+					try {
+						// detect MSBuild
+						info.msbuild = (await vswhere.query({
+							requires: 'Microsoft.Component.MSBuild',
+							find:     'MSBuild\\**\\Bin\\MSBuild.exe',
+							version:  info.installationVersion
+						}))[0];
+
+						if (info.isComplete) {
+							const vs = new windowslib.vs.VisualStudio(info);
+							results[vs.version] = vs;
 						}
+					} catch (e) {
+						// squelch
 					}
 				}
-				if (!found) {
-					this.data.selectedVisualStudio = null;
-				}
 
-				resolve(results.visualstudio);
-			});
-		});
-	}
+				await appcd.fs.watch({
+					type: 'vswhere',
+					paths: [
+						vswhere.exe,
+						expandPath(windowslib.vswhere.defaultPath)
+					],
+					handler: detectVS
+				});
+			} else {
+				await appcd.fs.unwatch('vswhere');
+			}
 
-	/**
-	 * Detect Windows Store SDK information.
-	 *
-	 * @returns {Promise<Object>}
-	 * @access private
-	 */
-	detectWindowsSDKs() {
-		return new Promise((resolve, reject) => {
-			console.log('Detecting windows store info');
-			windowslib.winstore.detect({ bypassCache: true }, (err, results) => {
-				if (err) {
-					reject(err);
-				} else {
-					resolve(results.windows);
-				}
-			});
+			gawk.set(this.data.visualstudio, results);
 		});
-	}
 
-	/**
-	 * Detect Windows Phone SDK information.
-	 *
-	 * @returns {Promise<Object>}
-	 * @access private
-	 */
-	detectWindowsPhone() {
-		return new Promise((resolve, reject) => {
-			console.log('Detecting windowsphone info');
-			windowslib.windowsphone.detect({ bypassCache: true }, (err, results) => {
-				if (err) {
-					reject(err);
-				} else {
-					resolve(results.windowsphone);
-				}
+		await detectVS();
+
+		this.vsRegWatchers = Object
+			.entries(windowslib.vs.registryKeys)
+			.map(([ key, filter ]) => {
+				return new RegistryWatcher({ filter, key }).on('change', detectVS).start();
 			});
+
+		appcd.fs.watch({
+			type: 'visualstudio',
+			depth: 2,
+			paths: [
+				...arrayify(get(this.config, 'windows.visualstudio.searchPaths'), true),
+				windowslib.vs.defaultPath
+			],
+			handler: detectVS
 		});
+
+		gawk.watch(this.config, [ 'windows' ], detectVS);
 	}
 }

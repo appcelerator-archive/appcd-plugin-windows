@@ -1,3 +1,13 @@
+# v2.0.0
+
+ * BREAKING CHANGE: Removed all Windows Phone related code.
+ * BREAKING CHANGE: Renamed `windows` to `sdks` in info results.
+ * BREAKING CHANGE: Removed `selectedVisualStudio` from info results.
+ * feat: Wired up live configuration changes.
+   [(DAEMON-198)](https://jira.appcelerator.org/browse/DAEMON-198)
+ * fix: Updated config to remove redundant `windows` namespace.
+ * chore: Update dependencies.
+
 # v1.5.0 (Aug 15, 2019)
 
  * chore: Added Appc Daemon v3 to list of compatible appcd versions.
