@@ -6,6 +6,9 @@
  * feat: Wired up live configuration changes.
    [(DAEMON-198)](https://jira.appcelerator.org/browse/DAEMON-198)
  * fix: Updated config to remove redundant `windows` namespace.
+
+# v1.5.1 (Nov 8, 2019)
+
  * chore: Update dependencies.
 
 # v1.5.0 (Aug 15, 2019)
