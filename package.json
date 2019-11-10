@@ -18,7 +18,7 @@
   "dependencies": {
     "gawk": "^4.6.6",
     "source-map-support": "^0.5.16",
-    "windowslib": "^2.1.0"
+    "windowslib": "^2.1.1"
   },
   "devDependencies": {
     "appcd-gulp": "^2.3.0"
@@ -27,7 +27,7 @@
   "bugs": "https://github.com/appcelerator/appcd-plugin-windows/issues",
   "repository": "https://github.com/appcelerator/appcd-plugin-windows",
   "appcd": {
-    "appcdVersion": "1.x || 2.x || 3.x",
+    "appcdVersion": "3.x",
     "config": "./conf/config.js",
     "name": "windows",
     "os": [

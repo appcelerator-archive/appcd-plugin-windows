@@ -1,4 +1,4 @@
-# v2.0.0
+# v2.0.0 (Nov 9, 2019)
 
  * BREAKING CHANGE: Removed all Windows Phone related code.
  * BREAKING CHANGE: Renamed `windows` to `sdks` in info results.
