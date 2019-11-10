@@ -1,3 +1,12 @@
+# v2.0.0 (Nov 9, 2019)
+
+ * BREAKING CHANGE: Removed all Windows Phone related code.
+ * BREAKING CHANGE: Renamed `windows` to `sdks` in info results.
+ * BREAKING CHANGE: Removed `selectedVisualStudio` from info results.
+ * feat: Wired up live configuration changes.
+   [(DAEMON-198)](https://jira.appcelerator.org/browse/DAEMON-198)
+ * fix: Updated config to remove redundant `windows` namespace.
+
 # v1.5.1 (Nov 8, 2019)
 
  * chore: Update dependencies.

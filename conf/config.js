@@ -1,41 +1,25 @@
 module.exports = {
-	device: {
+	sdk: {
 		/**
-		 * The number of milliseconds to rescan for connected devices.
-		 * @type {Number}
+		 * A list of paths to search for Windows SDKs.
+		 * @type {Array.<String>}
 		 */
-		pollInterval: null
-	},
-
-	emulators: {
-		/**
-		 * The number of milliseconds to rescan for emulators.
-		 * @type {Number}
-		 */
-		pollInterval: null
+		searchPaths: null
 	},
 
 	visualstudio: {
 		/**
-		 * The number of milliseconds to rescan for Visual Studio installations.
-		 * @type {Number}
+		 * A list of paths to search for Visual Studio installations.
+		 * @type {Array.<String>}
 		 */
-		pollInterval: null
+		searchPaths: null
 	},
 
-	windowsPhone: {
+	vswhere: {
 		/**
-		 * The number of milliseconds to rescan for Windows Phone SDKs.
-		 * @type {Number}
+		 * A list of paths to search for the `vswhere.exe` utility.
+		 * @type {Array.<String>}
 		 */
-		pollInterval: null
-	},
-
-	windowsSDK: {
-		/**
-		 * The number of milliseconds to rescan for Windows SDKs.
-		 * @type {Number}
-		 */
-		pollInterval: null
+		searchPaths: null
 	}
 };
