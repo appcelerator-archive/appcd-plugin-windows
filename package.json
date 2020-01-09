@@ -1,6 +1,6 @@
 {
   "name": "@appcd/plugin-windows",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Windows service for the Appc Daemon.",
   "main": "./dist/index",
   "author": "Appcelerator, Inc. <npmjs@appcelerator.com>",
@@ -16,18 +16,18 @@
     "test": "gulp test"
   },
   "dependencies": {
-    "gawk": "^4.6.6",
+    "gawk": "^4.7.0",
     "source-map-support": "^0.5.16",
     "windowslib": "^2.1.1"
   },
   "devDependencies": {
-    "appcd-gulp": "^2.3.0"
+    "appcd-gulp": "^2.3.1"
   },
   "homepage": "https://github.com/appcelerator/appc-daemon",
   "bugs": "https://github.com/appcelerator/appcd-plugin-windows/issues",
   "repository": "https://github.com/appcelerator/appcd-plugin-windows",
   "appcd": {
-    "appcdVersion": "3.x",
+    "apiVersion": "^1.1.0",
     "config": "./conf/config.js",
     "name": "windows",
     "os": [
