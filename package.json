@@ -18,7 +18,7 @@
   "dependencies": {
     "gawk": "^4.7.1",
     "source-map-support": "^0.5.19",
-    "windowslib": "^2.1.1"
+    "windowslib": "^3.0.0"
   },
   "devDependencies": {
     "appcd-gulp": "^3.0.0"

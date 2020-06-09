@@ -3,6 +3,7 @@
  * chore: Added API version 2.x.
  * chore: Transpile for Node 10 instead of Node 8. Not a breaking change as appcd has always
    guaranteed Node 10 or newer.
+ * chore: Updated to windowslib@3.0.0.
  * chore: Updated dependencies.
 
 # v2.0.1 (Jan 9, 2020)
